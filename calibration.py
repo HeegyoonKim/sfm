@@ -49,7 +49,7 @@ def calibrate_camera(
 def get_camera_parameters(args: Dict[str, Any]) -> tuple[np.ndarray]:
     """
     Return camera parameters.
-    K: intrinsic, dist: distortion coefficients
+    K: intrinsic, dist: distortion coefficients. k1, k2, p1, p3, k3
 
     Args:
         args (Dict): args
@@ -57,22 +57,55 @@ def get_camera_parameters(args: Dict[str, Any]) -> tuple[np.ndarray]:
     Returns:
         tuple[np.ndarray]: K, dist
     """
+    logging.info('\nGet camera parameters')
+    
     c_param_path = os.path.join(os.getcwd(), args.checkerboard_path, 'cam_info.npz')
     # Load or calibrate camera parameters
     if os.path.isfile(c_param_path):
-        logging.info('Load camera parameters.')
         c_params = np.load(c_param_path)
         K = c_params['K']
         dist = c_params['dist']
         reproj_error = c_params['reproj_error']
     else:
-        logging.info('Calibrate camera.')
         cb_img_list = load_images(args.checkerboard_path)
         reproj_error, K, dist = calibrate_camera(cb_img_list, args.cb_n_rows,
                                                  args.cb_n_cols)
         np.savez(c_param_path, K=K, dist=dist, reproj_error=reproj_error)
     
-    logging.info(f'\nIntrinsic K\n{K}\nDistortion coefficients\n{dist}\n'
-                 f'Reprojection error: {reproj_error:.6f}')
+    logging.info(f'Intrinsic K\n{K}\nDistortion coefficients\n{dist}\n'
+                 f'Reprojection error: {reproj_error:.6f}\n\n')
     
     return K, dist
+
+
+def undistort_images(
+    img_list: list[np.ndarray], dist: np.ndarray, old_K: np.ndarray
+) -> tuple[list[np.ndarray], np.ndarray]:
+    """
+    Args:
+        img_list (list[np.ndarray]): list of images.
+        dist (np.ndarray): distortion coefficients.
+        old_K (np.ndarray): intrinsic K.
+
+    Returns:
+        tuple[list[np.ndarray], np.ndarray]: [undistorted images, K]
+    """
+    logging.info('Undistort images')
+    
+    H, W = img_list[0].shape[:2]
+    
+    # Refine camera matrix
+    new_K, roi = cv2.getOptimalNewCameraMatrix(old_K, dist, (W,H), 1, (W,H))
+    x, y, w, h = roi
+    logging.info(f'\nNew intrinsic K\n{new_K}\n\n')
+    
+    # Undistort
+    undist_img_list = []
+    for img in img_list:
+        dst = cv2.undistort(img, old_K, dist, None, new_K)
+        
+        # Crop the image
+        dst = dst[y:y+h, x:x+w]
+        undist_img_list.append(dst)
+    
+    return undist_img_list, new_K
