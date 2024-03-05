@@ -10,12 +10,11 @@ from feature_matching import build_matching_table
 
 def parse_args() -> Dict[str, Any]:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--c_param_path', type=str, default='data')
     parser.add_argument('--checkerboard_path', type=str, default='data/checkerboard')
-    parser.add_argument('--data_path', type=str, default='data/images')
     parser.add_argument('--cb_n_rows', type=int, default=7)
     parser.add_argument('--cb_n_cols', type=int, default=10)
-   
+    parser.add_argument('--data_path', type=str, default='data/images')
+    
     args = parser.parse_args()
     
     return args
