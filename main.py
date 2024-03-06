@@ -14,7 +14,6 @@ def parse_args() -> Dict[str, Any]:
     parser.add_argument('--cb_n_rows', type=int, default=7)
     parser.add_argument('--cb_n_cols', type=int, default=10)
     parser.add_argument('--data_path', type=str, default='data/images')
-    
     args = parser.parse_args()
     
     return args
